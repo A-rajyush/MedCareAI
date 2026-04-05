@@ -1,0 +1,6 @@
+What's inside — 5 fully interactive modules:
+CareQueue — 4 scenario buttons (Normal / Peak / AI Optimized / Mass Casualty) that dynamically update all KPI metrics, the wait-time bar chart, and the live patient queue with priority color-coding. Real chart showing FIFO baseline vs AI scheduling.
+MedAssist — Complete medication schedule with taken/missed/upcoming states, weekly adherence bar chart, 30-day heatmap, caregiver alert feed, animated voice waveform, and a live-typing AI chatbot — type any medication question and get a contextual response.
+Post-Op Monitor — 3 sub-tabs (Vitals / Recovery Trend / Predictive Model) with dual-axis heart rate + SpO2 chart, 7-day recovery trajectory vs expected, 72-hour deterioration forecast, patient list, and a readmission risk gauge.
+Scenario Simulator — 5 sliders (arrival rate, staff count, AI scheduling %, no-show rate, consult time) that compute and instantly update predicted wait time, saturation, utilization, throughput, and redraw charts in real-time using a queuing theory model.
+Analytics — Cross-module overview with 30-day patient flow, department improvement comparison, radar chart for medication adherence by drug category, risk flag histogram, and AI model accuracy bars.
