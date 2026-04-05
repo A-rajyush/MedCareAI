@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedCore AI — Healthcare Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #0f1628;
+  --bg3: #161d35;
+  --bg4: #1e2640;
+  --surface: #1a2035;
+  --surface2: #222a42;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8eaf2;
+  --text2: #8b92b0;
+  --text3: #5a6080;
+  --cyan: #00d4ff;
+  --cyan2: #00a8cc;
+  --teal: #00e5b5;
+  --teal2: #00b88f;
+  --amber: #f5a623;
+  --red: #ff4d6a;
+  --red2: #cc2a44;
+  --green: #22c55e;
+  --blue: #4f8ef7;
+  --purple: #a78bfa;
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --r: 12px;
+  --r2: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); overflow: hidden; }
+
+/* Layout */
+.app { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 60px 1fr; height: 100vh; }
+.topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 16px; position: relative; z-index: 10; }
+.sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 20px 0; display: flex; flex-direction: column; overflow-y: auto; }
+.main { overflow-y: auto; background: var(--bg); }
+
+/* Topbar */
+.logo { font-family: var(--font-display); font-size: 20px; color: var(--cyan); letter-spacing: -0.5px; }
+.logo span { color: var(--text2); font-size: 14px; font-family: var(--font-body); font-weight: 300; margin-left: 8px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,0.4)} 50%{opacity:0.8;box-shadow:0 0 0 6px rgba(34,197,94,0)} }
+.live-label { font-size: 12px; color: var(--text2); font-family: var(--font-mono); }
+.time-display { font-family: var(--font-mono); font-size: 13px; color: var(--cyan); background: var(--bg3); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border2); }
+
+/* Sidebar */
+.sidebar-section { padding: 0 12px; margin-bottom: 8px; }
+.sidebar-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; padding: 0 12px; margin-bottom: 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--r2); cursor: pointer; transition: all 0.15s; color: var(--text2); font-size: 13px; font-weight: 400; border: 1px solid transparent; user-select: none; }
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: rgba(0,212,255,0.1); color: var(--cyan); border-color: rgba(0,212,255,0.2); }
+.nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
+.nav-badge.amber { background: var(--amber); color: #000; }
+.sidebar-divider { height: 1px; background: var(--border); margin: 12px 12px; }
+
+/* Page panels */
+.page { display: none; padding: 24px; animation: fadeIn 0.2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+/* Shared card */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; }
+.card-sm { padding: 14px 16px; }
+.card-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; margin-bottom: 14px; }
+
+/* Metric cards */
+.metrics-row { display: grid; gap: 14px; margin-bottom: 20px; }
+.m4 { grid-template-columns: repeat(4,1fr); }
+.m3 { grid-template-columns: repeat(3,1fr); }
+.m2 { grid-template-columns: repeat(2,1fr); }
+.metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 18px 20px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+.metric-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius: var(--r) var(--r) 0 0; }
+.metric-card.cyan::before { background: linear-gradient(90deg,var(--cyan),transparent); }
+.metric-card.teal::before { background: linear-gradient(90deg,var(--teal),transparent); }
+.metric-card.amber::before { background: linear-gradient(90deg,var(--amber),transparent); }
+.metric-card.red::before { background: linear-gradient(90deg,var(--red),transparent); }
+.metric-card.green::before { background: linear-gradient(90deg,var(--green),transparent); }
+.metric-card.blue::before { background: linear-gradient(90deg,var(--blue),transparent); }
+.metric-card:hover { border-color: var(--border2); }
+.metric-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: 0.04em; margin-bottom: 8px; }
+.metric-value { font-size: 28px; font-weight: 300; color: var(--text); letter-spacing: -1px; line-height: 1; font-family: var(--font-mono); }
+.metric-delta { font-size: 11px; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+.delta-up { color: var(--green); }
+.delta-down { color: var(--red); }
+.delta-neutral { color: var(--text3); }
+
+/* Grid layouts */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-60-40 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-40-60 { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; margin-bottom: 16px; }
+
+/* Charts */
+.chart-wrap { position: relative; width: 100%; }
+.h160 { height: 160px; }
+.h200 { height: 200px; }
+.h220 { height: 220px; }
+.h180 { height: 180px; }
+
+/* Queue items */
+.queue-list { display: flex; flex-direction: column; gap: 8px; }
+.q-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg3); border-radius: var(--r2); border: 1px solid var(--border); transition: all 0.2s; cursor: pointer; }
+.q-item:hover { background: var(--bg4); border-color: var(--border2); transform: translateX(2px); }
+.q-priority { width: 6px; border-radius: 3px; flex-shrink: 0; }
+.q-priority.critical { background: var(--red); height: 32px; }
+.q-priority.high { background: var(--amber); height: 28px; }
+.q-priority.normal { background: var(--teal); height: 24px; }
+.q-info { flex: 1; min-width: 0; }
+.q-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.q-dept { font-size: 11px; color: var(--text3); }
+.q-wait { font-family: var(--font-mono); font-size: 13px; color: var(--text2); margin-left: auto; }
+.q-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.badge-critical { background: rgba(255,77,106,0.15); color: var(--red); }
+.badge-high { background: rgba(245,166,35,0.15); color: var(--amber); }
+.badge-normal { background: rgba(0,229,181,0.15); color: var(--teal); }
+
+/* Sim controls */
+.sim-bar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+.sim-btn { padding: 7px 16px; font-size: 12px; font-family: var(--font-body); border-radius: 6px; border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); cursor: pointer; transition: all 0.15s; font-weight: 500; }
+.sim-btn:hover { background: var(--bg4); color: var(--text); }
+.sim-btn.active { background: rgba(0,212,255,0.15); color: var(--cyan); border-color: rgba(0,212,255,0.35); }
+.sim-label { font-size: 11px; color: var(--text3); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* Risk bars */
+.risk-list { display: flex; flex-direction: column; gap: 12px; }
+.risk-item { }
+.risk-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+.risk-pct { font-family: var(--font-mono); font-weight: 500; }
+.risk-track { height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+.risk-fill { height: 100%; border-radius: 2px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+
+/* Med schedule */
+.med-list { display: flex; flex-direction: column; gap: 8px; }
+.med-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg3); border-radius: var(--r2); border: 1px solid var(--border); }
+.med-status-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.med-status-icon.taken { background: rgba(0,229,181,0.15); }
+.med-status-icon.missed { background: rgba(255,77,106,0.15); }
+.med-status-icon.upcoming { background: rgba(79,142,247,0.15); }
+.med-name-wrap { flex: 1; }
+.med-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.med-time { font-size: 11px; color: var(--text3); font-family: var(--font-mono); }
+.med-pill { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 600; margin-left: auto; flex-shrink: 0; }
+.med-pill.taken { background: rgba(0,229,181,0.15); color: var(--teal); }
+.med-pill.missed { background: rgba(255,77,106,0.15); color: var(--red); }
+.med-pill.upcoming { background: rgba(79,142,247,0.15); color: var(--blue); }
+
+/* Alerts */
+.alert-list { display: flex; flex-direction: column; gap: 8px; }
+.alert-item { padding: 12px 14px; border-radius: var(--r2); border-left: 3px solid; display: flex; flex-direction: column; gap: 3px; }
+.alert-item.danger { background: rgba(255,77,106,0.08); border-color: var(--red); }
+.alert-item.warning { background: rgba(245,166,35,0.08); border-color: var(--amber); }
+.alert-item.info { background: rgba(79,142,247,0.08); border-color: var(--blue); }
+.alert-item.success { background: rgba(34,197,94,0.08); border-color: var(--green); }
+.alert-title { font-size: 13px; font-weight: 500; }
+.alert-title.danger { color: var(--red); }
+.alert-title.warning { color: var(--amber); }
+.alert-title.info { color: var(--blue); }
+.alert-title.success { color: var(--green); }
+.alert-sub { font-size: 11px; color: var(--text3); }
+
+/* Chat log */
+.chat-log { display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+.chat-tag { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; margin-top: 2px; }
+.chat-tag.user { background: rgba(0,212,255,0.15); color: var(--cyan); }
+.chat-tag.ai { background: rgba(0,229,181,0.15); color: var(--teal); }
+.chat-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* Vitals */
+.vitals-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+.vital-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r2); padding: 12px; text-align: center; }
+.vital-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; font-weight: 600; }
+.vital-value { font-size: 22px; font-weight: 300; font-family: var(--font-mono); line-height: 1; }
+.vital-unit { font-size: 10px; color: var(--text3); margin-top: 3px; }
+.vital-status { font-size: 10px; margin-top: 5px; font-weight: 600; }
+.vs-ok { color: var(--green); }
+.vs-warn { color: var(--amber); }
+.vs-danger { color: var(--red); }
+
+/* Patient header */
+.patient-header { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.patient-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--cyan2), var(--teal2)); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--bg); flex-shrink: 0; }
+.patient-name { font-size: 16px; font-weight: 500; color: var(--text); }
+.patient-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.status-pill { margin-left: auto; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+.sp-danger { background: rgba(255,77,106,0.15); color: var(--red); border: 1px solid rgba(255,77,106,0.3); }
+.sp-safe { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+/* Adherence ring */
+.adherence-ring-wrap { display: flex; align-items: center; gap: 20px; padding: 16px 0; }
+.ring-stat { text-align: center; }
+.ring-value { font-size: 32px; font-family: var(--font-mono); font-weight: 300; color: var(--teal); }
+.ring-label { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.legend-line { width: 16px; height: 2px; border-radius: 1px; }
+
+/* Interactive slider */
+.slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.slider-row label { font-size: 12px; color: var(--text3); min-width: 120px; }
+input[type=range] { flex: 1; accent-color: var(--cyan); height: 4px; }
+.slider-val { font-family: var(--font-mono); font-size: 12px; color: var(--cyan); min-width: 50px; text-align: right; }
+
+/* Section heading */
+.section-heading { font-family: var(--font-display); font-size: 22px; color: var(--text); margin-bottom: 4px; }
+.section-sub { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+
+/* Tab selector */
+.tab-bar { display: flex; gap: 2px; background: var(--bg3); border-radius: var(--r2); padding: 4px; margin-bottom: 16px; border: 1px solid var(--border); width: fit-content; }
+.tab-btn { padding: 6px 16px; font-size: 12px; border-radius: 6px; cursor: pointer; border: none; background: none; color: var(--text3); font-family: var(--font-body); font-weight: 500; transition: all 0.15s; }
+.tab-btn.active { background: var(--surface2); color: var(--cyan); }
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+/* Wearable indicator */
+.wearable-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--bg3); border-radius: var(--r2); border: 1px solid var(--border); margin-bottom: 14px; font-size: 12px; }
+.wearable-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+.wearable-text { color: var(--text2); }
+.wearable-text span { color: var(--teal); font-family: var(--font-mono); }
+
+/* Voice waveform */
+.voice-waveform { display: flex; align-items: center; gap: 3px; height: 32px; }
+.wave-bar { width: 3px; border-radius: 2px; background: var(--cyan); animation: wave 1.2s ease-in-out infinite; }
+.wave-bar:nth-child(2){animation-delay:0.1s} .wave-bar:nth-child(3){animation-delay:0.2s}
+.wave-bar:nth-child(4){animation-delay:0.3s} .wave-bar:nth-child(5){animation-delay:0.4s}
+.wave-bar:nth-child(6){animation-delay:0.3s} .wave-bar:nth-child(7){animation-delay:0.2s}
+@keyframes wave { 0%,100%{height:4px;opacity:0.4} 50%{height:28px;opacity:1} }
+
+/* Score circle */
+.score-circle { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.score-num { position: absolute; text-align: center; }
+.score-big { font-size: 28px; font-weight: 300; font-family: var(--font-mono); line-height: 1; }
+.score-lbl { font-size: 10px; color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo">MedCore<i>AI</i> <span>Healthcare Intelligence Platform</span></div>
+    <div class="topbar-right">
+      <div class="live-dot"></div>
+      <div class="live-label">LIVE</div>
+      <div class="time-display" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-label">Modules</div>
+    <div class="sidebar-section">
+      <div class="nav-item active" onclick="nav('queue',this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+        CareQueue
+      </div>
+      <div class="nav-item" onclick="nav('med',this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        MedAssist
+        <span class="nav-badge amber">1</span>
+      </div>
+      <div class="nav-item" onclick="nav('monitor',this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h1a2 2 0 012-2v-1a2 2 0 012-2h1.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h3A2.5 2.5 0 0016 5.5V3.935"/></svg>
+        Post-Op Monitor
+        <span class="nav-badge">2</span>
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">Simulation</div>
+    <div class="sidebar-section">
+      <div class="nav-item" onclick="nav('sim',this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Scenario Simulator
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">System</div>
+    <div class="sidebar-section">
+      <div class="nav-item" onclick="nav('analytics',this)">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Analytics
+      </div>
+    </div>
+    <div style="margin-top:auto;padding:16px 12px 4px;">
+      <div style="font-size:11px;color:var(--text3);text-align:center;">MedCore AI v2.4.1<br>© 2026 Healthcare Systems</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main" id="main">
+
+    <!-- ============ CAREQUEUE ============ -->
+    <div class="page active" id="page-queue">
+      <div class="section-heading">CareQueue</div>
+      <div class="section-sub">AI-driven outpatient scheduling & resource optimization — real-time queue intelligence</div>
+
+      <div class="sim-bar">
+        <span class="sim-label">Scenario:</span>
+        <button class="sim-btn active" onclick="queueLoad('normal',this)">Normal load</button>
+        <button class="sim-btn" onclick="queueLoad('peak',this)">Peak hours</button>
+        <button class="sim-btn" onclick="queueLoad('ai',this)">AI optimized</button>
+        <button class="sim-btn" onclick="queueLoad('crisis',this)">Mass casualty</button>
+      </div>
+
+      <div class="metrics-row m4" id="queue-metrics">
+        <div class="metric-card cyan">
+          <div class="metric-label">Avg wait time</div>
+          <div class="metric-value" id="m-wait">34 min</div>
+          <div class="metric-delta delta-up" id="m-wait-d">↓ 28% vs FIFO baseline</div>
+        </div>
+        <div class="metric-card teal">
+          <div class="metric-label">Active queue depth</div>
+          <div class="metric-value" id="m-queue">12</div>
+          <div class="metric-delta delta-up" id="m-queue-d">↓ 5 from baseline</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">Resource utilization</div>
+          <div class="metric-value" id="m-util">81%</div>
+          <div class="metric-delta delta-up" id="m-util-d">↑ 14% efficiency gain</div>
+        </div>
+        <div class="metric-card blue">
+          <div class="metric-label">Throughput / hr</div>
+          <div class="metric-value" id="m-thru">47</div>
+          <div class="metric-delta delta-up" id="m-thru-d">↑ 11 patients/hr</div>
+        </div>
+      </div>
+
+      <div class="grid-60-40">
+        <div class="card">
+          <div class="card-title">Wait time — baseline vs AI optimized (minutes)</div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-line" style="background:#5a6080"></div>FIFO Baseline</div>
+            <div class="legend-item"><div class="legend-line" style="background:var(--cyan)"></div>AI Optimized</div>
+          </div>
+          <div class="chart-wrap h220"><canvas id="waitChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Live patient queue</div>
+          <div class="queue-list" id="queue-list"></div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">Department allocation</div>
+          <div class="chart-wrap h180"><canvas id="deptChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Arrivals vs capacity (hourly)</div>
+          <div class="chart-wrap h180"><canvas id="arrivalChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">AI model performance</div>
+          <div class="risk-list" style="margin-top:8px;" id="ai-perf-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ MEDASSIST ============ -->
+    <div class="page" id="page-med">
+      <div class="section-heading">MedAssist</div>
+      <div class="section-sub">Privacy-first voice-driven medication adherence — elderly patient companion</div>
+
+      <div class="metrics-row m4">
+        <div class="metric-card teal">
+          <div class="metric-label">Weekly adherence</div>
+          <div class="metric-value" id="adh-rate">87%</div>
+          <div class="metric-delta delta-up">↑ 31% vs no-assistant</div>
+        </div>
+        <div class="metric-card cyan">
+          <div class="metric-label">Doses today</div>
+          <div class="metric-value">3 / 5</div>
+          <div class="metric-delta delta-neutral">2 upcoming</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">Missed this week</div>
+          <div class="metric-value">1</div>
+          <div class="metric-delta delta-up">↓ 4 vs last week</div>
+        </div>
+        <div class="metric-card blue">
+          <div class="metric-label">Caregiver alerts sent</div>
+          <div class="metric-value">2</div>
+          <div class="metric-delta delta-neutral">Today</div>
+        </div>
+      </div>
+
+      <div class="grid-60-40">
+        <div class="card">
+          <div class="card-title">Today's medication schedule</div>
+          <div class="med-list" id="med-list"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-sm">
+            <div class="card-title">Weekly adherence chart</div>
+            <div class="chart-wrap h160"><canvas id="adherenceChart"></canvas></div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-title">Caregiver alerts</div>
+            <div class="alert-list">
+              <div class="alert-item warning"><div class="alert-title warning">Missed afternoon dose</div><div class="alert-sub">Atorvastatin 20mg — 1:00 PM today · SMS sent to caregiver</div></div>
+              <div class="alert-item info"><div class="alert-title info">Refill reminder</div><div class="alert-sub">Metformin 500mg — 3 days supply remaining</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Voice assistant — interaction log</div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px;background:var(--bg3);border-radius:var(--r2);">
+            <div class="voice-waveform">
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+            </div>
+            <div style="font-size:12px;color:var(--text2);">Voice assistant <span style="color:var(--green);font-weight:600;">ACTIVE</span></div>
+            <div style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--font-mono);">On-device · Private</div>
+          </div>
+          <div class="chat-log" id="chat-log"></div>
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            <input type="text" id="voice-input" placeholder='Ask something (e.g. "Did I take my medicine?")' style="flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:var(--r2);padding:9px 14px;font-size:13px;font-family:var(--font-body);outline:none;">
+            <button onclick="sendVoiceQuery()" style="padding:9px 18px;background:rgba(0,229,181,0.15);color:var(--teal);border:1px solid rgba(0,229,181,0.3);border-radius:var(--r2);cursor:pointer;font-size:13px;font-weight:500;font-family:var(--font-body);">Ask AI ↗</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">30-day adherence heatmap</div>
+          <div id="heatmap" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px;"></div>
+          <div style="display:flex;gap:10px;margin-top:12px;font-size:11px;color:var(--text3);">
+            <span>Less</span>
+            <div style="display:flex;gap:3px;">
+              <div style="width:12px;height:12px;border-radius:3px;background:var(--bg4)"></div>
+              <div style="width:12px;height:12px;border-radius:3px;background:rgba(0,229,181,0.2)"></div>
+              <div style="width:12px;height:12px;border-radius:3px;background:rgba(0,229,181,0.5)"></div>
+              <div style="width:12px;height:12px;border-radius:3px;background:var(--teal)"></div>
+            </div>
+            <span>More</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ POST-OP MONITOR ============ -->
+    <div class="page" id="page-monitor">
+      <div class="section-heading">Post-Op Remote Monitor</div>
+      <div class="section-sub">Wearable-driven recovery analytics with predictive deterioration modeling</div>
+
+      <div class="wearable-bar">
+        <div class="wearable-dot"></div>
+        <div class="wearable-text">Wearable sync: <span>2 min ago</span> · Device: <span>Fitbit Sense 3</span> · Battery: <span>74%</span> · Patient: <span>Suresh Kumar</span></div>
+      </div>
+
+      <div class="metrics-row m4">
+        <div class="metric-card green">
+          <div class="metric-label">Recovery score</div>
+          <div class="metric-value" style="color:var(--green);">76/100</div>
+          <div class="metric-delta delta-up">↑ 8 pts this week</div>
+        </div>
+        <div class="metric-card amber">
+          <div class="metric-label">Risk level</div>
+          <div class="metric-value" style="color:var(--amber);">Medium</div>
+          <div class="metric-delta delta-neutral">Day 4 post-op</div>
+        </div>
+        <div class="metric-card red">
+          <div class="metric-label">Active alerts</div>
+          <div class="metric-value" style="color:var(--red);">2</div>
+          <div class="metric-delta delta-down">↑ Requires review</div>
+        </div>
+        <div class="metric-card cyan">
+          <div class="metric-label">Data points (24hr)</div>
+          <div class="metric-value">1,440</div>
+          <div class="metric-delta delta-up">Every 60 seconds</div>
+        </div>
+      </div>
+
+      <div class="grid-60-40">
+        <div class="card">
+          <div class="patient-header">
+            <div class="patient-avatar">SK</div>
+            <div>
+              <div class="patient-name">Suresh Kumar</div>
+              <div class="patient-meta">Male, 58 · Right knee replacement · Discharged Apr 1, 2026</div>
+            </div>
+            <span class="status-pill sp-danger">Monitor Closely</span>
+          </div>
+
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="monTab('vitals',this)">Vitals</button>
+            <button class="tab-btn" onclick="monTab('trend',this)">Recovery trend</button>
+            <button class="tab-btn" onclick="monTab('predict',this)">Predictive model</button>
+          </div>
+
+          <div id="mon-vitals">
+            <div class="vitals-grid">
+              <div class="vital-card"><div class="vital-label">Heart rate</div><div class="vital-value" style="color:var(--teal);">82</div><div class="vital-unit">bpm</div><div class="vital-status vs-ok">Normal</div></div>
+              <div class="vital-card"><div class="vital-label">SpO2</div><div class="vital-value" style="color:var(--amber);">96</div><div class="vital-unit">%</div><div class="vital-status vs-warn">Borderline</div></div>
+              <div class="vital-card"><div class="vital-label">Temperature</div><div class="vital-value" style="color:var(--red);">37.8</div><div class="vital-unit">°C</div><div class="vital-status vs-danger">Elevated</div></div>
+              <div class="vital-card"><div class="vital-label">Steps today</div><div class="vital-value" style="color:var(--cyan);">1,240</div><div class="vital-unit">steps</div><div class="vital-status vs-ok">On target</div></div>
+              <div class="vital-card"><div class="vital-label">Sleep score</div><div class="vital-value" style="color:var(--amber);">62</div><div class="vital-unit">/100</div><div class="vital-status vs-warn">Fair</div></div>
+              <div class="vital-card"><div class="vital-label">Pain log</div><div class="vital-value" style="color:var(--amber);">4</div><div class="vital-unit">/10</div><div class="vital-status vs-warn">Moderate</div></div>
+            </div>
+            <div class="card-title">24-hour heart rate & SpO2</div>
+            <div class="chart-wrap h180"><canvas id="vitalsChart"></canvas></div>
+          </div>
+
+          <div id="mon-trend" style="display:none;">
+            <div class="legend">
+              <div class="legend-item"><div class="legend-line" style="background:var(--teal)"></div>Actual recovery</div>
+              <div class="legend-item"><div class="legend-line" style="background:var(--text3);border-top:2px dashed var(--text3);background:none;"></div>Expected trajectory</div>
+            </div>
+            <div class="chart-wrap h220"><canvas id="recoveryChart"></canvas></div>
+            <div class="grid-3" style="margin-top:14px;margin-bottom:0;">
+              <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2);">
+                <div style="font-size:11px;color:var(--text3);">Mobility</div>
+                <div style="font-size:18px;font-family:var(--font-mono);color:var(--teal);margin-top:4px;">+22%</div>
+              </div>
+              <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2);">
+                <div style="font-size:11px;color:var(--text3);">Inflammation</div>
+                <div style="font-size:18px;font-family:var(--font-mono);color:var(--amber);margin-top:4px;">↑ mild</div>
+              </div>
+              <div style="text-align:center;padding:12px;background:var(--bg3);border-radius:var(--r2);">
+                <div style="font-size:11px;color:var(--text3);">Est. full recovery</div>
+                <div style="font-size:18px;font-family:var(--font-mono);color:var(--cyan);margin-top:4px;">18 days</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="mon-predict" style="display:none;">
+            <div class="card-title">Predictive deterioration model (next 72 hrs)</div>
+            <div class="chart-wrap h180"><canvas id="predictChart"></canvas></div>
+            <div style="margin-top:14px;">
+              <div class="card-title">Risk factors</div>
+              <div class="risk-list" id="risk-factors"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-sm">
+            <div class="card-title">Active alerts</div>
+            <div class="alert-list">
+              <div class="alert-item danger"><div class="alert-title danger">Elevated temperature — 37.8°C</div><div class="alert-sub">Sustained 6+ hrs · Possible early infection · Notify surgeon</div></div>
+              <div class="alert-item warning"><div class="alert-title warning">SpO2 declining trend</div><div class="alert-sub">3 consecutive readings below 97% · Monitor breathing</div></div>
+              <div class="alert-item success"><div class="alert-title success">Mobility improving</div><div class="alert-sub">Step count ↑ 22% vs yesterday · Physio target on track</div></div>
+            </div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-title">Readmission risk (7-day)</div>
+            <div class="chart-wrap" style="height:130px;"><canvas id="riskGauge"></canvas></div>
+          </div>
+          <div class="card card-sm">
+            <div class="card-title">Patient list</div>
+            <div style="display:flex;flex-direction:column;gap:6px;" id="patient-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SIMULATOR ============ -->
+    <div class="page" id="page-sim">
+      <div class="section-heading">Scenario Simulator</div>
+      <div class="section-sub">Adjust parameters and see real-time impact on hospital operations</div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Queue simulation parameters</div>
+          <div class="slider-row"><label>Arrival rate (pts/hr)</label><input type="range" id="s-arrival" min="5" max="60" value="25" oninput="simUpdate()"><span class="slider-val" id="sv-arrival">25</span></div>
+          <div class="slider-row"><label>Staff count</label><input type="range" id="s-staff" min="2" max="20" value="8" oninput="simUpdate()"><span class="slider-val" id="sv-staff">8</span></div>
+          <div class="slider-row"><label>AI scheduling (%)</label><input type="range" id="s-ai" min="0" max="100" value="70" oninput="simUpdate()"><span class="slider-val" id="sv-ai">70%</span></div>
+          <div class="slider-row"><label>No-show rate (%)</label><input type="range" id="s-noshow" min="0" max="40" value="15" oninput="simUpdate()"><span class="slider-val" id="sv-noshow">15%</span></div>
+          <div class="slider-row"><label>Avg consult time (min)</label><input type="range" id="s-consult" min="5" max="30" value="12" oninput="simUpdate()"><span class="slider-val" id="sv-consult">12</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Simulated outcomes</div>
+          <div class="metrics-row m2" id="sim-outcomes">
+            <div class="metric-card cyan card-sm">
+              <div class="metric-label">Predicted avg wait</div>
+              <div class="metric-value" id="sim-wait">--</div>
+              <div class="metric-delta" id="sim-wait-d">--</div>
+            </div>
+            <div class="metric-card teal card-sm">
+              <div class="metric-label">Queue saturation</div>
+              <div class="metric-value" id="sim-sat">--</div>
+              <div class="metric-delta" id="sim-sat-d">--</div>
+            </div>
+            <div class="metric-card amber card-sm">
+              <div class="metric-label">Staff utilization</div>
+              <div class="metric-value" id="sim-util">--</div>
+              <div class="metric-delta" id="sim-util-d">--</div>
+            </div>
+            <div class="metric-card green card-sm">
+              <div class="metric-label">Throughput / hr</div>
+              <div class="metric-value" id="sim-thru">--</div>
+              <div class="metric-delta" id="sim-thru-d">--</div>
+            </div>
+          </div>
+          <div class="chart-wrap h220"><canvas id="simChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Wait time distribution — simulation result</div>
+        <div class="chart-wrap h200"><canvas id="simDistChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ============ ANALYTICS ============ -->
+    <div class="page" id="page-analytics">
+      <div class="section-heading">System Analytics</div>
+      <div class="section-sub">Cross-module performance overview — last 30 days</div>
+
+      <div class="metrics-row m4">
+        <div class="metric-card cyan"><div class="metric-label">Total patients served</div><div class="metric-value">4,821</div><div class="metric-delta delta-up">↑ 18% vs last month</div></div>
+        <div class="metric-card teal"><div class="metric-label">Avg adherence rate</div><div class="metric-value">84%</div><div class="metric-delta delta-up">↑ 29% with MedAssist</div></div>
+        <div class="metric-card green"><div class="metric-label">Readmissions prevented</div><div class="metric-value">37</div><div class="metric-delta delta-up">↓ 42% readmission rate</div></div>
+        <div class="metric-card amber"><div class="metric-label">Cost savings (est.)</div><div class="metric-value">₹2.1M</div><div class="metric-delta delta-up">Efficiency gains</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Monthly patient flow</div>
+          <div class="chart-wrap h220"><canvas id="flowChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Department wait time improvement</div>
+          <div class="chart-wrap h220"><canvas id="deptImpChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">Medication adherence by category</div>
+          <div class="chart-wrap h180"><canvas id="adhCatChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Post-op risk flags triggered</div>
+          <div class="chart-wrap h180"><canvas id="riskFlagChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">AI model accuracy</div>
+          <div class="risk-list" style="margin-top:8px;">
+            <div class="risk-item"><div class="risk-header"><span>Queue priority prediction</span><span class="risk-pct" style="color:var(--cyan);">94%</span></div><div class="risk-track"><div class="risk-fill" style="width:94%;background:var(--cyan)"></div></div></div>
+            <div class="risk-item"><div class="risk-header"><span>No-show prediction</span><span class="risk-pct" style="color:var(--teal);">89%</span></div><div class="risk-track"><div class="risk-fill" style="width:89%;background:var(--teal)"></div></div></div>
+            <div class="risk-item"><div class="risk-header"><span>Adherence risk detection</span><span class="risk-pct" style="color:var(--blue);">91%</span></div><div class="risk-track"><div class="risk-fill" style="width:91%;background:var(--blue)"></div></div></div>
+            <div class="risk-item"><div class="risk-header"><span>Deterioration forecast</span><span class="risk-pct" style="color:var(--purple);">82%</span></div><div class="risk-track"><div class="risk-fill" style="width:82%;background:var(--purple)"></div></div></div>
+            <div class="risk-item"><div class="risk-header"><span>Readmission prediction</span><span class="risk-pct" style="color:var(--amber);">87%</span></div><div class="risk-track"><div class="risk-fill" style="width:87%;background:var(--amber)"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ============================================================
+// MedCore AI — Healthcare Intelligence Platform
+// app.js — Full interactive logic
+// ============================================================
+
+// --- Navigation ---
+let currentPage = 'queue';
+const charts = {};
+
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  currentPage = id;
+  setTimeout(() => initPageCharts(id), 60);
+}
+
+// --- Clock ---
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============================================================
+// CAREQUEUE DATA & CHARTS
+// ============================================================
+const queueScenarios = {
+  normal: {
+    wait: '34 min', waitD: '↓ 28% vs FIFO baseline', waitClass: 'delta-up',
+    queue: '12', queueD: '↓ 5 from baseline',
+    util: '81%', utilD: '↑ 14% efficiency gain',
+    thru: '47', thruD: '↑ 11 patients/hr',
+    baseline: [62, 48, 71, 39, 55, 43],
+    optimized: [38, 31, 47, 24, 36, 29],
+    patients: [
+      { name: 'Rajan M.', dept: 'Cardiology', wait: '8 min', priority: 'critical' },
+      { name: 'Sunita P.', dept: 'Orthopedics', wait: '22 min', priority: 'high' },
+      { name: 'Arjun K.', dept: 'General OPD', wait: '31 min', priority: 'normal' },
+      { name: 'Priya S.', dept: 'Dermatology', wait: '40 min', priority: 'normal' },
+      { name: 'Vikram D.', dept: 'ENT', wait: '52 min', priority: 'normal' }
+    ]
+  },
+  peak: {
+    wait: '58 min', waitD: '↑ 14% above average', waitClass: 'delta-down',
+    queue: '27', queueD: '↑ Peak overflow',
+    util: '97%', utilD: '↑ Near capacity',
+    thru: '38', thruD: '↓ Bottleneck active',
+    baseline: [90, 72, 105, 58, 81, 67],
+    optimized: [58, 50, 73, 39, 62, 48],
+    patients: [
+      { name: 'Meera J.', dept: 'Emergency', wait: '3 min', priority: 'critical' },
+      { name: 'Rajan M.', dept: 'Cardiology', wait: '12 min', priority: 'critical' },
+      { name: 'Sunita P.', dept: 'Orthopedics', wait: '35 min', priority: 'high' },
+      { name: 'Anil K.', dept: 'General OPD', wait: '62 min', priority: 'high' },
+      { name: 'Priya S.', dept: 'Dermatology', wait: '78 min', priority: 'normal' }
+    ]
+  },
+  ai: {
+    wait: '21 min', waitD: '↓ 56% vs FIFO baseline', waitClass: 'delta-up',
+    queue: '7', queueD: '↓ 10 from baseline',
+    util: '88%', utilD: '↑ Optimally balanced',
+    thru: '58', thruD: '↑ 22 patients/hr',
+    baseline: [62, 48, 71, 39, 55, 43],
+    optimized: [22, 18, 28, 14, 20, 17],
+    patients: [
+      { name: 'Rajan M.', dept: 'Cardiology', wait: '4 min', priority: 'critical' },
+      { name: 'Sunita P.', dept: 'Orthopedics', wait: '11 min', priority: 'high' },
+      { name: 'Arjun K.', dept: 'General OPD', wait: '18 min', priority: 'normal' },
+      { name: 'Priya S.', dept: 'Dermatology', wait: '21 min', priority: 'normal' }
+    ]
+  },
+  crisis: {
+    wait: '112 min', waitD: '↑ Crisis mode active', waitClass: 'delta-down',
+    queue: '64', queueD: '↑ Mass casualty protocol',
+    util: '100%', utilD: '↑ All resources deployed',
+    thru: '31', thruD: '↓ Triage prioritized',
+    baseline: [180, 160, 210, 140, 170, 155],
+    optimized: [112, 98, 135, 85, 108, 97],
+    patients: [
+      { name: 'TRAUMA-01', dept: 'Emergency', wait: '0 min', priority: 'critical' },
+      { name: 'TRAUMA-02', dept: 'Emergency', wait: '1 min', priority: 'critical' },
+      { name: 'Meera J.', dept: 'ICU', wait: '3 min', priority: 'critical' },
+      { name: 'Anil K.', dept: 'Surgery', wait: '8 min', priority: 'high' },
+      { name: 'Sunita P.', dept: 'General OPD', wait: '95 min', priority: 'normal' }
+    ]
+  }
+};
+
+function queueLoad(mode, btn) {
+  document.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const s = queueScenarios[mode];
+  document.getElementById('m-wait').textContent = s.wait;
+  document.getElementById('m-wait-d').textContent = s.waitD;
+  document.getElementById('m-wait-d').className = 'metric-delta ' + s.waitClass;
+  document.getElementById('m-queue').textContent = s.queue;
+  document.getElementById('m-queue-d').textContent = s.queueD;
+  document.getElementById('m-util').textContent = s.util;
+  document.getElementById('m-util-d').textContent = s.utilD;
+  document.getElementById('m-thru').textContent = s.thru;
+  document.getElementById('m-thru-d').textContent = s.thruD;
+  renderQueueList(s.patients);
+  if (charts.waitChart) {
+    charts.waitChart.data.datasets[0].data = s.baseline;
+    charts.waitChart.data.datasets[1].data = s.optimized;
+    charts.waitChart.update('active');
+  }
+}
+
+function renderQueueList(patients) {
+  const el = document.getElementById('queue-list');
+  el.innerHTML = patients.map(p => `
+    <div class="q-item">
+      <div class="q-priority ${p.priority}"></div>
+      <div class="q-info">
+        <div class="q-name">${p.name}</div>
+        <div class="q-dept">${p.dept}</div>
+      </div>
+      <span class="q-badge badge-${p.priority}">${p.priority.toUpperCase()}</span>
+      <div class="q-wait">${p.wait}</div>
+    </div>`).join('');
+}
+
+function renderAIPerf() {
+  const items = [
+    { label: 'Triage accuracy', pct: 94, color: '#00d4ff' },
+    { label: 'No-show prediction', pct: 89, color: '#00e5b5' },
+    { label: 'Wait-time forecast', pct: 86, color: '#4f8ef7' },
+    { label: 'Resource allocation', pct: 91, color: '#a78bfa' },
+    { label: 'Schedule compliance', pct: 78, color: '#f5a623' }
+  ];
+  document.getElementById('ai-perf-list').innerHTML = items.map(i => `
+    <div class="risk-item">
+      <div class="risk-header"><span>${i.label}</span><span class="risk-pct" style="color:${i.color}">${i.pct}%</span></div>
+      <div class="risk-track"><div class="risk-fill" style="width:${i.pct}%;background:${i.color}"></div></div>
+    </div>`).join('');
+}
+
+// ============================================================
+// MEDASSIST DATA
+// ============================================================
+const medications = [
+  { name: 'Metformin 500mg', time: '8:00 AM', note: 'with breakfast', status: 'taken' },
+  { name: 'Lisinopril 10mg', time: '9:00 AM', note: 'with water', status: 'taken' },
+  { name: 'Atorvastatin 20mg', time: '1:00 PM', note: 'with meal', status: 'missed' },
+  { name: 'Metformin 500mg', time: '6:00 PM', note: 'with dinner', status: 'upcoming' },
+  { name: 'Amlodipine 5mg', time: '9:00 PM', note: 'bedtime', status: 'upcoming' }
+];
+
+const statusIcon = { taken: '✓', missed: '!', upcoming: '●' };
+
+function renderMedList() {
+  document.getElementById('med-list').innerHTML = medications.map(m => `
+    <div class="med-item">
+      <div class="med-status-icon ${m.status}">${statusIcon[m.status]}</div>
+      <div class="med-name-wrap">
+        <div class="med-name">${m.name}</div>
+        <div class="med-time">${m.time} — ${m.note}</div>
+      </div>
+      <span class="med-pill ${m.status}">${m.status.toUpperCase()}</span>
+    </div>`).join('');
+}
+
+function renderHeatmap() {
+  const el = document.getElementById('heatmap');
+  const adherenceData = [
+    1,1,1,0,1,1,1, 1,0,1,1,1,1,0,
+    1,1,1,1,0,1,1, 0,1,1,1,1,1,1,
+    1,1 // partial last week
+  ];
+  el.innerHTML = adherenceData.map((d, i) => {
+    const alpha = d === 0 ? '0' : (i < 21 ? '1' : '0.5');
+    return `<div title="Day ${i+1}: ${d ? 'Taken' : 'Missed'}" style="width:100%;aspect-ratio:1;border-radius:4px;background:${d ? `rgba(0,229,181,${alpha})` : 'var(--bg4)'};cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'"></div>`;
+  }).join('');
+}
+
+// Voice AI simulated responses
+const voiceResponses = {
+  'take': "Yes! You took Metformin at 8:02 AM and Lisinopril at 9:15 AM. You missed Atorvastatin at 1 PM — would you like me to remind you now?",
+  'medicine': "Today you have 5 medications scheduled. You've taken 2, missed 1 (Atorvastatin 20mg at 1 PM), and have 2 upcoming. Your adherence this week is 87%.",
+  'missed': "You missed Atorvastatin 20mg scheduled for 1:00 PM. I've notified your caregiver. It's not too late to take it — consult your doctor if unsure.",
+  'next': "Your next medication is Metformin 500mg at 6:00 PM with dinner. I'll remind you 15 minutes before.",
+  'lisinopril': "Lisinopril 10mg helps control your blood pressure. Take it daily with a full glass of water. You took today's dose at 9:15 AM. ✓",
+  'metformin': "Metformin 500mg helps manage your blood sugar for Type 2 diabetes. Take with meals. You have two doses daily — morning done, evening at 6 PM.",
+  'caregiver': "I've sent 2 alerts to your caregiver today: one for the missed Atorvastatin dose at 1 PM, and a refill reminder for Metformin (3 days remaining).",
+  'remind': "I'll set a reminder for your evening Metformin at 6:00 PM. I'll also remind you about Amlodipine at 9:00 PM. You can say 'cancel reminder' anytime.",
+  'default': "I'm here to help with your medications! You can ask me: 'Did I take my medicine?', 'What's my next dose?', or 'Tell me about my medication.'"
+};
+
+function sendVoiceQuery() {
+  const input = document.getElementById('voice-input');
+  const q = input.value.trim();
+  if (!q) return;
+  const log = document.getElementById('chat-log');
+  log.innerHTML += `<div class="chat-msg"><span class="chat-tag user">User</span><span class="chat-text">${q}</span></div>`;
+  const lower = q.toLowerCase();
+  let response = voiceResponses.default;
+  for (const [key, val] of Object.entries(voiceResponses)) {
+    if (lower.includes(key)) { response = val; break; }
+  }
+  setTimeout(() => {
+    log.innerHTML += `<div class="chat-msg"><span class="chat-tag ai">Voice AI</span><span class="chat-text">${response}</span></div>`;
+    log.scrollTop = log.scrollHeight;
+  }, 600);
+  input.value = '';
+  log.scrollTop = log.scrollHeight;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('voice-input') === document.activeElement) {
+    sendVoiceQuery();
+  }
+});
+
+function initChatLog() {
+  document.getElementById('chat-log').innerHTML = `
+    <div class="chat-msg"><span class="chat-tag user">User</span><span class="chat-text">Did I take my morning medicine?</span></div>
+    <div class="chat-msg"><span class="chat-tag ai">Voice AI</span><span class="chat-text">Yes! You took Metformin at 8:02 AM and Lisinopril at 9:15 AM. You missed Atorvastatin at 1 PM — would you like me to notify your caregiver?</span></div>
+    <div class="chat-msg"><span class="chat-tag user">User</span><span class="chat-text">What is Lisinopril for?</span></div>
+    <div class="chat-msg"><span class="chat-tag ai">Voice AI</span><span class="chat-text">Lisinopril 10mg helps control your blood pressure. Take it daily with a full glass of water. Your doctor prescribed it to keep your BP below 130/80.</span></div>`;
+}
+
+// ============================================================
+// POST-OP MONITOR
+// ============================================================
+function monTab(id, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mon-vitals').style.display = id === 'vitals' ? '' : 'none';
+  document.getElementById('mon-trend').style.display = id === 'trend' ? '' : 'none';
+  document.getElementById('mon-predict').style.display = id === 'predict' ? '' : 'none';
+  if (id === 'predict') renderRiskFactors();
+}
+
+function renderRiskFactors() {
+  const items = [
+    { label: 'Infection risk', pct: 71, color: '#ff4d6a' },
+    { label: 'Readmission (7d)', pct: 38, color: '#f5a623' },
+    { label: 'DVT risk', pct: 22, color: '#4f8ef7' },
+    { label: 'Complication-free', pct: 61, color: '#22c55e' }
+  ];
+  document.getElementById('risk-factors').innerHTML = items.map(i => `
+    <div class="risk-item">
+      <div class="risk-header"><span>${i.label}</span><span class="risk-pct" style="color:${i.color}">${i.pct}%</span></div>
+      <div class="risk-track"><div class="risk-fill" style="width:${i.pct}%;background:${i.color}"></div></div>
+    </div>`).join('');
+}
+
+function renderPatientList() {
+  const patients = [
+    { initials: 'SK', name: 'Suresh Kumar', status: 'Day 4', risk: 'high' },
+    { initials: 'PR', name: 'Priya Reddy', status: 'Day 2', risk: 'normal' },
+    { initials: 'AM', name: 'Anil Mehta', status: 'Day 8', risk: 'normal' },
+    { initials: 'SG', name: 'Sita Gupta', status: 'Day 12', risk: 'low' }
+  ];
+  const riskMap = { high: '#ff4d6a', normal: '#f5a623', low: '#22c55e' };
+  document.getElementById('patient-list').innerHTML = patients.map(p => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r2);border:1px solid var(--border);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#00a8cc,#00b88f);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--bg);flex-shrink:0;">${p.initials}</div>
+      <div><div style="font-size:13px;font-weight:500;color:var(--text);">${p.name}</div><div style="font-size:11px;color:var(--text3);">${p.status}</div></div>
+      <div style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:${riskMap[p.risk]}"></div>
+    </div>`).join('');
+}
+
+// ============================================================
+// SCENARIO SIMULATOR
+// ============================================================
+let simChartInst = null;
+let simDistChartInst = null;
+
+function simUpdate() {
+  const arrival = +document.getElementById('s-arrival').value;
+  const staff = +document.getElementById('s-staff').value;
+  const aiPct = +document.getElementById('s-ai').value;
+  const noShow = +document.getElementById('s-noshow').value;
+  const consult = +document.getElementById('s-consult').value;
+
+  document.getElementById('sv-arrival').textContent = arrival;
+  document.getElementById('sv-staff').textContent = staff;
+  document.getElementById('sv-ai').textContent = aiPct + '%';
+  document.getElementById('sv-noshow').textContent = noShow + '%';
+  document.getElementById('sv-consult').textContent = consult;
+
+  const effectiveArrival = arrival * (1 - noShow / 100);
+  const capacity = staff * (60 / consult);
+  const rawUtil = Math.min(99, (effectiveArrival / capacity) * 100);
+  const aiBonus = (aiPct / 100) * 0.18;
+  const util = Math.round(rawUtil * (1 - aiBonus * 0.3));
+  const baseWait = Math.max(3, ((effectiveArrival / capacity) * consult * 2.5) - (aiPct / 100) * 8);
+  const wait = Math.round(Math.min(180, baseWait));
+  const sat = Math.round(Math.min(100, (effectiveArrival / capacity) * 100));
+  const thru = Math.round(capacity * Math.min(1, effectiveArrival / capacity) * (1 + aiBonus));
+
+  document.getElementById('sim-wait').textContent = wait + ' min';
+  document.getElementById('sim-sat').textContent = sat + '%';
+  document.getElementById('sim-util').textContent = util + '%';
+  document.getElementById('sim-thru').textContent = thru;
+
+  const wClass = wait < 30 ? 'delta-up' : wait < 60 ? 'delta-neutral' : 'delta-down';
+  document.getElementById('sim-wait-d').textContent = wait < 30 ? 'Excellent' : wait < 60 ? 'Manageable' : 'Critical';
+  document.getElementById('sim-wait-d').className = 'metric-delta ' + wClass;
+  document.getElementById('sim-sat-d').textContent = sat < 70 ? 'Comfortable' : sat < 90 ? 'High load' : 'Overloaded';
+  document.getElementById('sim-util-d').textContent = util < 80 ? 'Under-utilized' : util < 95 ? 'Optimal' : 'Strained';
+  document.getElementById('sim-thru-d').textContent = 'patients/hr';
+
+  // Update sim chart
+  const hours = ['8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM'];
+  const arrData = hours.map((_, i) => {
+    const wave = 1 + Math.sin((i / hours.length) * Math.PI) * 0.5;
+    return Math.round(arrival * wave / hours.length * 3);
+  });
+  const capData = hours.map(() => Math.round(capacity));
+  if (simChartInst) {
+    simChartInst.data.datasets[0].data = arrData;
+    simChartInst.data.datasets[1].data = capData;
+    simChartInst.update('none');
+  }
+
+  // Update distribution
+  const buckets = [0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < 200; i++) {
+    const w = Math.max(1, wait + (Math.random() - 0.5) * wait * 0.6 + Math.random() * 5);
+    const b = Math.min(5, Math.floor(w / (wait * 0.5)));
+    buckets[b]++;
+  }
+  if (simDistChartInst) {
+    simDistChartInst.data.datasets[0].data = buckets.map(b => Math.round(b / 2));
+    simDistChartInst.update('none');
+  }
+}
+
+// ============================================================
+// CHART INITIALIZERS
+// ============================================================
+const chartDefaults = {
+  color: '#8b92b0',
+  borderColor: 'rgba(255,255,255,0.06)',
+  font: { family: "'DM Sans', sans-serif", size: 11 }
+};
+
+function mk(id, config) {
+  const el = document.getElementById(id);
+  if (!el || el._chart) return;
+  el._chart = new Chart(el, config);
+  charts[id] = el._chart;
+  return el._chart;
+}
+
+function initQueueCharts() {
+  const scenario = queueScenarios.normal;
+  renderQueueList(scenario.patients);
+  renderAIPerf();
+
+  mk('waitChart', {
+    type: 'bar',
+    data: {
+      labels: ['Cardiology', 'General OPD', 'Ortho', 'ENT', 'Dermatology', 'Radiology'],
+      datasets: [
+        { label: 'FIFO Baseline', data: scenario.baseline, backgroundColor: 'rgba(90,96,128,0.6)', borderRadius: 4, borderSkipped: false },
+        { label: 'AI Optimized', data: scenario.optimized, backgroundColor: 'rgba(0,212,255,0.7)', borderRadius: 4, borderSkipped: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + ' min' } } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font, callback: v => v + 'm' }, title: { display: true, text: 'Minutes', color: chartDefaults.color, font: { size: 10 } } }
+      }
+    }
+  });
+
+  mk('deptChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['Cardiology', 'General OPD', 'Orthopedics', 'ENT', 'Other'],
+      datasets: [{ data: [24, 31, 18, 12, 15], backgroundColor: ['#00d4ff', '#00e5b5', '#4f8ef7', '#a78bfa', '#5a6080'], borderWidth: 0, hoverBorderWidth: 2, hoverBorderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10, padding: 10 } } }
+    }
+  });
+
+  mk('arrivalChart', {
+    type: 'line',
+    data: {
+      labels: ['8AM', '9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM'],
+      datasets: [
+        { label: 'Arrivals', data: [8, 14, 19, 22, 18, 21, 16, 12], borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.07)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#00d4ff', borderWidth: 2 },
+        { label: 'Capacity', data: [15, 15, 20, 20, 20, 18, 18, 15], borderColor: '#ff4d6a', borderDash: [5, 4], fill: false, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } }
+      }
+    }
+  });
+}
+
+function initMedCharts() {
+  renderMedList();
+  renderHeatmap();
+  initChatLog();
+
+  mk('adherenceChart', {
+    type: 'bar',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        data: [100, 80, 100, 100, 60, 100, 87],
+        backgroundColor: [100, 80, 100, 100, 60, 100, 87].map(v => v === 100 ? 'rgba(0,229,181,0.8)' : v >= 80 ? 'rgba(245,166,35,0.8)' : 'rgba(255,77,106,0.8)'),
+        borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { max: 110, grid: { color: chartDefaults.borderColor }, ticks: { callback: v => v + '%', color: chartDefaults.color, font: chartDefaults.font } }
+      }
+    }
+  });
+}
+
+function initMonitorCharts() {
+  renderPatientList();
+
+  mk('vitalsChart', {
+    type: 'line',
+    data: {
+      labels: Array.from({ length: 24 }, (_, i) => i % 4 === 0 ? `${i}:00` : ''),
+      datasets: [
+        { label: 'Heart Rate (bpm)', data: Array.from({ length: 24 }, (_, i) => 78 + Math.sin(i * 0.6) * 5 + Math.random() * 4), borderColor: '#00e5b5', backgroundColor: 'rgba(0,229,181,0.05)', fill: true, tension: 0.4, pointRadius: 1, borderWidth: 2, yAxisID: 'y' },
+        { label: 'SpO2 (%)', data: Array.from({ length: 24 }, (_, i) => 96 + Math.sin(i * 0.4) * 1.5 - (i > 18 ? 1 : 0) + (Math.random() - 0.5)), borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,0.05)', fill: true, tension: 0.4, pointRadius: 1, borderWidth: 2, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: { size: 10 } } },
+        y: { position: 'left', grid: { color: chartDefaults.borderColor }, ticks: { color: '#00e5b5', font: chartDefaults.font }, title: { display: true, text: 'BPM', color: '#00e5b5', font: { size: 10 } } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: '#4f8ef7', font: chartDefaults.font }, min: 90, max: 100, title: { display: true, text: 'SpO2%', color: '#4f8ef7', font: { size: 10 } } }
+      }
+    }
+  });
+
+  mk('recoveryChart', {
+    type: 'line',
+    data: {
+      labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+      datasets: [
+        { label: 'Actual recovery', data: [30, 42, 55, 62, 68, 72, 76], borderColor: '#00e5b5', backgroundColor: 'rgba(0,229,181,0.08)', fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#00e5b5', borderWidth: 2.5 },
+        { label: 'Expected', data: [35, 48, 58, 65, 70, 74, 78], borderColor: '#5a6080', borderDash: [5, 4], fill: false, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { min: 0, max: 100, grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } }
+      }
+    }
+  });
+
+  mk('predictChart', {
+    type: 'line',
+    data: {
+      labels: ['Now', '+6h', '+12h', '+18h', '+24h', '+36h', '+48h', '+72h'],
+      datasets: [
+        { label: 'Infection risk %', data: [71, 73, 76, 78, 80, 75, 68, 60], borderColor: '#ff4d6a', backgroundColor: 'rgba(255,77,106,0.07)', fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2 },
+        { label: 'Recovery score', data: [76, 76, 74, 75, 77, 80, 83, 87], borderColor: '#00e5b5', backgroundColor: 'rgba(0,229,181,0.05)', fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { min: 0, max: 100, grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font, callback: v => v + '%' } }
+      }
+    }
+  });
+
+  (function() {
+    const gaugePlugin = {
+      id: 'gaugeText',
+      afterDraw(chart) {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        const { top, left, width, height } = chartArea;
+        ctx.save();
+        ctx.fillStyle = '#8b92b0';
+        ctx.font = '11px DM Sans, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Readmission risk (7d)', left + width / 2, top + height * 0.85);
+        ctx.fillStyle = '#f5a623';
+        ctx.font = '300 26px JetBrains Mono, monospace';
+        ctx.fillText('38%', left + width / 2, top + height * 0.6);
+        ctx.restore();
+      }
+    };
+    const gaugeEl = document.getElementById('riskGauge');
+    if (gaugeEl && !gaugeEl._chart) {
+      gaugeEl._chart = new Chart(gaugeEl, {
+        type: 'doughnut',
+        data: { datasets: [{ data: [38,62], backgroundColor: ['#f5a623','rgba(255,255,255,0.05)'], borderWidth: 0, circumference: 180, rotation: -90 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+        plugins: [gaugePlugin]
+      });
+      charts['riskGauge'] = gaugeEl._chart;
+    }
+  })();
+}
+
+function initSimCharts() {
+  const hours = ['8AM', '9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM'];
+
+  const inst = mk('simChart', {
+    type: 'line',
+    data: {
+      labels: hours,
+      datasets: [
+        { label: 'Arrivals', data: [8, 12, 16, 19, 16, 18, 14, 10, 8], borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.07)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2 },
+        { label: 'Capacity', data: [18, 18, 18, 18, 18, 18, 18, 18, 18], borderColor: '#ff4d6a', borderDash: [4, 3], fill: false, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } }
+      }
+    }
+  });
+  simChartInst = inst;
+
+  const distInst = mk('simDistChart', {
+    type: 'bar',
+    data: {
+      labels: ['0–15 min', '15–30 min', '30–45 min', '45–60 min', '60–90 min', '90+ min'],
+      datasets: [{
+        label: 'Patients',
+        data: [28, 42, 31, 18, 8, 3],
+        backgroundColor: ['rgba(0,229,181,0.7)', 'rgba(0,212,255,0.7)', 'rgba(79,142,247,0.7)', 'rgba(245,166,35,0.7)', 'rgba(255,77,106,0.5)', 'rgba(255,77,106,0.8)'],
+        borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font }, title: { display: true, text: 'Patients', color: chartDefaults.color, font: { size: 10 } } }
+      }
+    }
+  });
+  simDistChartInst = distInst;
+  simUpdate();
+}
+
+function initAnalyticsCharts() {
+  mk('flowChart', {
+    type: 'line',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      datasets: [
+        { label: 'Patients served', data: [3200, 3450, 3800, 4100, 3950, 4300, 4500, 4200, 4600, 4750, 4821, 4900], borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.07)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2 },
+        { label: 'No-shows', data: [520, 480, 430, 390, 410, 360, 320, 340, 290, 270, 260, 240], borderColor: '#ff4d6a', backgroundColor: 'rgba(255,77,106,0.05)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } }
+      }
+    }
+  });
+
+  mk('deptImpChart', {
+    type: 'bar',
+    data: {
+      labels: ['Cardiology', 'General', 'Ortho', 'ENT', 'Derma', 'Radiology'],
+      datasets: [
+        { label: 'Before AI', data: [62, 48, 71, 39, 55, 43], backgroundColor: 'rgba(90,96,128,0.5)', borderRadius: 4 },
+        { label: 'After AI', data: [38, 31, 47, 24, 36, 29], backgroundColor: 'rgba(0,229,181,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font, callback: v => v + 'm' }, title: { display: true, text: 'Wait (min)', color: chartDefaults.color, font: { size: 10 } } }
+      }
+    }
+  });
+
+  mk('adhCatChart', {
+    type: 'radar',
+    data: {
+      labels: ['Cardiovascular', 'Diabetes', 'Blood Pressure', 'Pain Mgmt', 'Antibiotics', 'Supplements'],
+      datasets: [
+        { label: 'With MedAssist', data: [91, 87, 89, 82, 94, 76], borderColor: '#00e5b5', backgroundColor: 'rgba(0,229,181,0.1)', pointBackgroundColor: '#00e5b5', borderWidth: 2 },
+        { label: 'Without', data: [62, 58, 64, 55, 70, 48], borderColor: '#5a6080', backgroundColor: 'rgba(90,96,128,0.1)', pointBackgroundColor: '#5a6080', borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: chartDefaults.color, font: chartDefaults.font, boxWidth: 10 } } },
+      scales: { r: { grid: { color: chartDefaults.borderColor }, ticks: { display: false }, pointLabels: { color: chartDefaults.color, font: { size: 10 } } } }
+    }
+  });
+
+  mk('riskFlagChart', {
+    type: 'bar',
+    data: {
+      labels: ['Temp spike', 'Low SpO2', 'Pain surge', 'Inactivity', 'HR anomaly', 'Sleep drop'],
+      datasets: [{
+        label: 'Flags (30d)',
+        data: [23, 17, 31, 42, 9, 28],
+        backgroundColor: ['rgba(255,77,106,0.7)', 'rgba(245,166,35,0.7)', 'rgba(255,77,106,0.5)', 'rgba(79,142,247,0.7)', 'rgba(245,166,35,0.5)', 'rgba(167,139,250,0.7)'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: chartDefaults.borderColor }, ticks: { color: chartDefaults.color, font: chartDefaults.font } },
+        y: { grid: { display: false }, ticks: { color: chartDefaults.color, font: chartDefaults.font } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// Page chart dispatcher
+// ============================================================
+function initPageCharts(id) {
+  if (id === 'queue') initQueueCharts();
+  else if (id === 'med') initMedCharts();
+  else if (id === 'monitor') initMonitorCharts();
+  else if (id === 'sim') initSimCharts();
+  else if (id === 'analytics') initAnalyticsCharts();
+}
+
+// ============================================================
+// LIVE DATA SIMULATION — vitals pulse every 5s
+// ============================================================
+function liveUpdate() {
+  // Randomly update a queue wait time slightly
+  if (currentPage === 'monitor') {
+    const heartEl = document.querySelector('.vital-value');
+    if (heartEl && heartEl.textContent) {
+      const base = 82;
+      const jitter = (Math.random() - 0.5) * 4;
+      // Only update if vitals tab is shown
+    }
+  }
+}
+setInterval(liveUpdate, 5000);
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initQueueCharts();
+});
+
+</script>
+</body>
+</html>
